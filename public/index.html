@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Capstone Proposal Q&amp;A — Smart Student Wallet</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-title">
+        <span class="badge">IT Capstone Project 1</span>
+        <h1>Smart Student Wallet — Proposal Q&amp;A</h1>
+      </div>
+      <p class="subtitle">
+        Ask anything about your Main Proposal or Backups. Answers are grounded
+        only in your submitted proposal document.
+      </p>
+    </header>
+
+    <main id="chat" class="chat" aria-live="polite"></main>
+
+    <form id="composer" class="composer">
+      <textarea
+        id="question"
+        rows="1"
+        placeholder="e.g. What's a strong answer if the panel asks why RFID over QR codes?"
+        autofocus
+      ></textarea>
+      <button id="send" type="submit">Ask</button>
+    </form>
+
+    <div class="suggestions" id="suggestions">
+      <button type="button" class="chip">Summarize RQ1 and RQ2</button>
+      <button type="button" class="chip">Why Agile methodology?</button>
+      <button type="button" class="chip">Compare the 3 proposals</button>
+      <button type="button" class="chip">Likely panel questions</button>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
