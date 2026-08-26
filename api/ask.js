@@ -1,25 +1,20 @@
-import "dotenv/config";
-import express from "express";
 import Groq from "groq-sdk";
-import path from "path";
-import { fileURLToPath } from "url";
-import { SYSTEM_PROMPT } from "./proposal-context.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const app = express();
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+import { SYSTEM_PROMPT } from "../proposal-context.js";
 
 const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
 
-app.post("/api/ask", async (req, res) => {
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "method not allowed" });
+    return;
+  }
+
   const { question, history } = req.body ?? {};
 
   if (typeof question !== "string" || question.trim() === "") {
-    return res.status(400).json({ error: "question is required" });
+    res.status(400).json({ error: "question is required" });
+    return;
   }
 
   const priorMessages = Array.isArray(history)
@@ -68,9 +63,4 @@ app.post("/api/ask", async (req, res) => {
       `\n\n[Error: ${error instanceof Error ? error.message : "Something went wrong talking to the AI."}]`,
     );
   }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Capstone proposal Q&A running at http://localhost:${PORT}`);
-});
+}
