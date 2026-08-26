@@ -55,6 +55,11 @@ function addMessage(role, text) {
   return el;
 }
 
+function renderMarkdown(el, text) {
+  const html = marked.parse(text, { breaks: true });
+  el.innerHTML = DOMPurify.sanitize(html);
+}
+
 async function ask(question) {
   addMessage("user", question);
   history.push({ role: "user", content: question });
@@ -85,7 +90,7 @@ async function ask(question) {
       const { done, value } = await reader.read();
       if (done) break;
       fullText += decoder.decode(value, { stream: true });
-      aiEl.textContent = fullText;
+      renderMarkdown(aiEl, fullText);
       chatEl.scrollTop = chatEl.scrollHeight;
     }
 
