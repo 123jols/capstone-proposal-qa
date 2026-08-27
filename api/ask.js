@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const client = new Groq();
     const stream = await client.chat.completions.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: 1024,
       messages,
       stream: true,
     });
