@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { SYSTEM_PROMPT } from "../proposal-context.js";
+import { codeMatches } from "./_lib/auth.js";
 
 const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
@@ -7,6 +8,11 @@ const MAX_HISTORY_MESSAGES = 20;
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "method not allowed" });
+    return;
+  }
+
+  if (!codeMatches(req.headers["x-access-code"])) {
+    res.status(401).json({ error: "Invalid or missing access code" });
     return;
   }
 

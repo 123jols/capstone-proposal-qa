@@ -13,6 +13,25 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
+    <div id="access-gate" class="access-gate">
+      <form id="access-gate-form" class="access-gate-card">
+        <span class="access-gate-icon">🔒</span>
+        <h2>Access Code Required</h2>
+        <p>Ask your groupmate for the access code to open this Q&amp;A.</p>
+        <input
+          id="access-code-input"
+          type="password"
+          autocomplete="off"
+          placeholder="Access code"
+          autofocus
+        />
+        <p id="access-gate-error" class="access-gate-error" hidden>
+          Incorrect code — try again.
+        </p>
+        <button id="access-gate-submit" type="submit">Unlock</button>
+      </form>
+    </div>
+
     <header class="topbar">
       <div class="topbar-row">
         <div class="topbar-title">
@@ -62,5 +81,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@13/lib/marked.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <script src="app.js"></script>
+    <script src="gate.js"></script>
   </body>
 </html>

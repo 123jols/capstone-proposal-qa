@@ -84,6 +84,112 @@ body.dashboard-body {
   overflow: auto;
 }
 
+.access-gate[hidden] {
+  display: none;
+}
+
+.access-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(
+      1100px 500px at 50% -10%,
+      #fff1e2 0%,
+      rgba(255, 241, 226, 0) 60%
+    ),
+    var(--bg);
+}
+
+.access-gate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 28px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+
+.access-gate-icon {
+  font-size: 30px;
+  margin-bottom: 4px;
+}
+
+.access-gate-card h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.access-gate-card p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.access-gate-card input {
+  width: 100%;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.access-gate-card input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.15);
+}
+
+.access-gate-error {
+  color: #b3450a;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 8px 0 0 !important;
+}
+
+.access-gate-card button {
+  width: 100%;
+  margin-top: 10px;
+  background: var(--gradient-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.access-gate-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.access-gate-card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .home-link {
   display: inline-flex;
   align-items: center;

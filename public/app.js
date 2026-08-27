@@ -19,11 +19,15 @@ const OPENING_QUESTIONS = {
 /** @type {{role: "user" | "assistant", content: string}[]} */
 const history = [];
 
-restoreHistory();
-maybeAskOpeningQuestion();
-updateOnlineStatus();
-window.addEventListener("online", updateOnlineStatus);
-window.addEventListener("offline", updateOnlineStatus);
+window.onAccessGranted = initChatApp;
+
+function initChatApp() {
+  restoreHistory();
+  maybeAskOpeningQuestion();
+  updateOnlineStatus();
+  window.addEventListener("online", updateOnlineStatus);
+  window.addEventListener("offline", updateOnlineStatus);
+}
 
 formEl.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -201,7 +205,10 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
     resetStallTimer();
     const response = await fetch("/api/ask", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Access-Code": localStorage.getItem(ACCESS_CODE_KEY) || "",
+      },
       body: JSON.stringify({ question, history: priorHistory }),
       signal: controller.signal,
     });

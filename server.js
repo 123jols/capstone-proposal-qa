@@ -4,6 +4,7 @@ import Groq from "groq-sdk";
 import path from "path";
 import { fileURLToPath } from "url";
 import { SYSTEM_PROMPT } from "./proposal-context.js";
+import { codeMatches } from "./api/_lib/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -15,7 +16,16 @@ app.use(express.static(path.join(__dirname, "public")));
 const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
 
+app.post("/api/verify", (req, res) => {
+  const ok = codeMatches(req.body?.code);
+  res.status(ok ? 200 : 401).json({ ok });
+});
+
 app.post("/api/ask", async (req, res) => {
+  if (!codeMatches(req.headers["x-access-code"])) {
+    return res.status(401).json({ error: "Invalid or missing access code" });
+  }
+
   const { question, history } = req.body ?? {};
 
   if (typeof question !== "string" || question.trim() === "") {
