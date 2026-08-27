@@ -3,57 +3,80 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Capstone Proposal Q&amp;A — Smart Student Wallet</title>
+    <title>Capstone Proposals — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <body class="dashboard-body">
     <header class="topbar">
       <div class="topbar-row">
         <div class="topbar-title">
           <span class="badge">IT Capstone Project 1</span>
-          <h1>Smart Student Wallet — Proposal Q&amp;A</h1>
-        </div>
-        <div class="topbar-actions">
-          <button type="button" id="new-chat" class="topbar-btn">
-            + New Chat
-          </button>
-          <button type="button" id="clear-history" class="topbar-btn subtle">
-            Clear History
-          </button>
+          <h1>Capstone Proposals</h1>
         </div>
       </div>
       <p class="subtitle">
-        Ask anything about your Main Proposal or Backups. Answers are grounded
-        only in your submitted proposal document.
+        Pick a proposal to open its Q&amp;A chat — ask about research
+        questions, background, methodology, or how to defend a specific
+        choice.
       </p>
     </header>
 
-    <div id="offline-banner" class="offline-banner" hidden>
-      You're offline — you can still review past answers below, but asking a
-      new question needs a connection.
-    </div>
+    <a id="continue-banner" class="continue-banner" href="chat.html" hidden>
+      Continue your previous chat →
+    </a>
 
-    <main id="chat" class="chat" aria-live="polite"></main>
+    <main class="dashboard">
+      <a class="proposal-card" href="chat.html?proposal=main">
+        <span class="proposal-icon">💳</span>
+        <span class="proposal-rank main">Main Proposal</span>
+        <h2>Smart Student Wallet</h2>
+        <p>
+          An IoT-based RFID cashless payment and digital wallet system with
+          purchase tracking and parent monitoring.
+        </p>
+        <span class="proposal-cta">Open chat →</span>
+      </a>
 
-    <form id="composer" class="composer">
-      <textarea
-        id="question"
-        rows="1"
-        placeholder="e.g. What's a strong answer if the panel asks why RFID over QR codes?"
-        autofocus
-      ></textarea>
-      <button id="send" type="submit">Ask</button>
-    </form>
+      <a class="proposal-card" href="chat.html?proposal=smartgate">
+        <span class="proposal-icon">🚪</span>
+        <span class="proposal-rank">Backup Proposal 1</span>
+        <h2>SmartGate</h2>
+        <p>
+          An IoT-based smart school entrance screening and access monitoring
+          system with RFID identification and real-time alerts.
+        </p>
+        <span class="proposal-cta">Open chat →</span>
+      </a>
 
-    <div class="suggestions" id="suggestions">
-      <button type="button" class="chip">Summarize RQ1 and RQ2</button>
-      <button type="button" class="chip">Why Agile methodology?</button>
-      <button type="button" class="chip">Compare the 3 proposals</button>
-      <button type="button" class="chip">Likely panel questions</button>
-    </div>
+      <a class="proposal-card" href="chat.html?proposal=safeguard">
+        <span class="proposal-icon">🛡️</span>
+        <span class="proposal-rank">Backup Proposal 2</span>
+        <h2>SafeGuard</h2>
+        <p>
+          An IoT-based smart school safety monitoring system with
+          AI-assisted threat detection and real-time emergency alerts.
+        </p>
+        <span class="proposal-cta">Open chat →</span>
+      </a>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked@13/lib/marked.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-    <script src="app.js"></script>
+      <a class="proposal-card all" href="chat.html">
+        <span class="proposal-icon">💬</span>
+        <span class="proposal-rank">All Proposals</span>
+        <h2>General Q&amp;A</h2>
+        <p>
+          Ask across all three proposals — compare them, get likely panel
+          questions, or run a Mock Defense.
+        </p>
+        <span class="proposal-cta">Open chat →</span>
+      </a>
+    </main>
+
+    <script src="app-dashboard.js"></script>
   </body>
 </html>

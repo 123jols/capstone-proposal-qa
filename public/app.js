@@ -10,11 +10,17 @@ const clearHistoryBtn = document.getElementById("clear-history");
 const STORAGE_KEY = "capstone-qa-history";
 const MAX_STORED_MESSAGES = 40;
 const STALL_TIMEOUT_MS = 25000;
+const OPENING_QUESTIONS = {
+  main: "Give me a quick overview of the Main Proposal, Smart Student Wallet.",
+  smartgate: "Give me a quick overview of SmartGate.",
+  safeguard: "Give me a quick overview of SafeGuard.",
+};
 
 /** @type {{role: "user" | "assistant", content: string}[]} */
 const history = [];
 
 restoreHistory();
+maybeAskOpeningQuestion();
 updateOnlineStatus();
 window.addEventListener("online", updateOnlineStatus);
 window.addEventListener("offline", updateOnlineStatus);
@@ -137,6 +143,14 @@ function restoreHistory() {
   }
 }
 
+function maybeAskOpeningQuestion() {
+  if (history.length > 0) return; // don't interrupt an existing conversation
+
+  const proposal = new URLSearchParams(location.search).get("proposal");
+  const opening = OPENING_QUESTIONS[proposal];
+  if (opening) ask(opening);
+}
+
 function appendRetryButton(el, question, priorHistory) {
   const btn = document.createElement("button");
   btn.type = "button";
@@ -146,24 +160,27 @@ function appendRetryButton(el, question, priorHistory) {
   el.appendChild(btn);
 }
 
+function showTypingIndicator(el) {
+  el.innerHTML =
+    '<span class="typing-dots"><span></span><span></span><span></span></span>';
+}
+
 async function ask(question) {
   addMessage("user", question);
   history.push({ role: "user", content: question });
   persistHistory();
 
-  const aiEl = addMessage("ai pending", "");
+  const aiEl = addMessage("ai", "");
   await answerInto(aiEl, question, history.slice(0, -1), 0);
 }
 
 async function answerInto(aiEl, question, priorHistory, attempt) {
   sendBtn.disabled = true;
-  aiEl.classList.remove("error");
-  aiEl.classList.add("pending");
-  aiEl.textContent = "";
+  aiEl.className = "msg ai loading";
+  showTypingIndicator(aiEl);
 
   if (!navigator.onLine) {
-    aiEl.classList.remove("pending");
-    aiEl.classList.add("error");
+    aiEl.className = "msg ai error";
     aiEl.textContent = "You're offline — connect to the internet and retry.";
     appendRetryButton(aiEl, question, priorHistory);
     sendBtn.disabled = false;
@@ -195,26 +212,32 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let firstChunk = true;
 
     while (true) {
       resetStallTimer();
       const { done, value } = await reader.read();
       if (done) break;
       fullText += decoder.decode(value, { stream: true });
+      if (firstChunk && fullText) {
+        aiEl.className = "msg ai pending";
+        firstChunk = false;
+      }
       renderMarkdown(aiEl, fullText);
       chatEl.scrollTop = chatEl.scrollHeight;
     }
 
     clearTimeout(stallTimer);
-    aiEl.classList.remove("pending");
+    aiEl.classList.remove("loading", "pending");
+    if (!fullText) aiEl.textContent = "(no response)";
     history.push({ role: "assistant", content: fullText });
     persistHistory();
   } catch (err) {
     clearTimeout(stallTimer);
-    aiEl.classList.remove("pending");
 
     if (fullText) {
       // We already streamed a partial answer — keep it, flag the drop.
+      aiEl.classList.remove("loading", "pending");
       renderMarkdown(aiEl, fullText);
       aiEl.classList.add("error");
       const note = document.createElement("div");
@@ -225,11 +248,12 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
       history.push({ role: "assistant", content: fullText });
       persistHistory();
     } else if (attempt === 0 && err.name !== "AbortError") {
-      // Likely a flaky-connection blip — retry once, silently.
+      // Likely a flaky-connection blip — keep showing the loading dots,
+      // retry silently.
       setTimeout(() => answerInto(aiEl, question, priorHistory, 1), 1200);
       return;
     } else {
-      aiEl.classList.add("error");
+      aiEl.className = "msg ai error";
       aiEl.textContent =
         err.name === "AbortError"
           ? "This is taking too long — your connection may be slow or unstable."
