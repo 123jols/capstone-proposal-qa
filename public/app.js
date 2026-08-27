@@ -4,6 +4,8 @@ const inputEl = document.getElementById("question");
 const sendBtn = document.getElementById("send");
 const suggestionsEl = document.getElementById("suggestions");
 const offlineBanner = document.getElementById("offline-banner");
+const newChatBtn = document.getElementById("new-chat");
+const clearHistoryBtn = document.getElementById("clear-history");
 
 const STORAGE_KEY = "capstone-qa-history";
 const MAX_STORED_MESSAGES = 40;
@@ -41,6 +43,23 @@ suggestionsEl.addEventListener("click", (e) => {
     ask(target.textContent);
   }
 });
+
+newChatBtn.addEventListener("click", () => {
+  resetChat();
+});
+
+clearHistoryBtn.addEventListener("click", () => {
+  if (confirm("Clear all chat history? This can't be undone.")) {
+    resetChat();
+  }
+});
+
+function resetChat() {
+  history.length = 0;
+  persistHistory();
+  renderEmptyState();
+  inputEl.focus();
+}
 
 function autoResize() {
   inputEl.style.height = "auto";
