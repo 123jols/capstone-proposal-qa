@@ -178,7 +178,9 @@ async function ask(question) {
   await answerInto(aiEl, question, history.slice(0, -1), 0);
 }
 
-async function answerInto(aiEl, question, priorHistory, attempt) {
+const MAX_QUEUED_ATTEMPTS = 8;
+
+async function answerInto(aiEl, question, priorHistory, attempt, queuedAttempt = 0) {
   sendBtn.disabled = true;
   aiEl.className = "msg ai loading";
   showTypingIndicator(aiEl);
@@ -212,6 +214,33 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
       body: JSON.stringify({ question, history: priorHistory }),
       signal: controller.signal,
     });
+
+    if (response.status === 429) {
+      let queueInfo = null;
+      try {
+        queueInfo = await response.clone().json();
+      } catch {}
+
+      if (queueInfo?.queued) {
+        clearTimeout(stallTimer);
+
+        if (queuedAttempt < MAX_QUEUED_ATTEMPTS) {
+          const waitMs = queueInfo.retryAfterMs ?? 5000;
+          aiEl.className = "msg ai loading";
+          aiEl.textContent = `High demand right now — waiting ~${Math.ceil(waitMs / 1000)}s for AI capacity...`;
+          setTimeout(
+            () => answerInto(aiEl, question, priorHistory, attempt, queuedAttempt + 1),
+            waitMs + Math.random() * 1000,
+          );
+          return;
+        }
+
+        aiEl.className = "msg ai error";
+        aiEl.textContent = "The AI is still at capacity — please try again in a moment.";
+        appendRetryButton(aiEl, question, priorHistory);
+        return;
+      }
+    }
 
     if (!response.ok || !response.body) {
       throw new Error(`Request failed (${response.status})`);
@@ -254,10 +283,11 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
       appendRetryButton(aiEl, question, priorHistory);
       history.push({ role: "assistant", content: fullText });
       persistHistory();
-    } else if (attempt === 0 && err.name !== "AbortError") {
-      // Likely a flaky-connection blip — keep showing the loading dots,
-      // retry silently.
-      setTimeout(() => answerInto(aiEl, question, priorHistory, 1), 1200);
+    } else if (attempt < 2 && err.name !== "AbortError") {
+      // Likely a flaky connection or a momentary AI-provider rate limit —
+      // keep showing the loading dots, retry silently with backoff.
+      const delay = attempt === 0 ? 1200 : 6000;
+      setTimeout(() => answerInto(aiEl, question, priorHistory, attempt + 1), delay);
       return;
     } else {
       aiEl.className = "msg ai error";

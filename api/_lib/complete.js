@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { GoogleGenAI } from "@google/genai";
+import { reserveGroq, reserveGemini } from "./budget.js";
 
 const GROQ_MODEL = "openai/gpt-oss-120b";
 const GEMINI_MODEL = "gemini-3.6-flash";
@@ -24,7 +25,7 @@ async function streamGroq(messages, res, onWrite) {
   }
 }
 
-async function streamGemini(messages, res) {
+async function streamGemini(messages, res, onWrite) {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const systemMessage = messages.find((m) => m.role === "system");
   const contents = messages
@@ -44,49 +45,80 @@ async function streamGemini(messages, res) {
   });
 
   for await (const chunk of stream) {
-    if (chunk.text) res.write(chunk.text);
+    if (chunk.text) {
+      onWrite();
+      res.write(chunk.text);
+    }
   }
+}
+
+function sendFatalError(res, status, message) {
+  if (!res.headersSent) res.status(status);
+  res.end(`\n\n[Error: ${message}]`);
 }
 
 /**
  * Streams an AI answer to `res` (caller must already have set text/plain
- * streaming headers). Tries Groq first; if Groq is rate-limited (429) and
- * nothing has been written yet, falls back to Gemini so the request still
- * succeeds instead of surfacing an error to the user.
+ * streaming headers). Reserves a slot against Groq's per-minute token budget
+ * first; if that budget (or Groq itself) is unavailable, tries Gemini next.
+ * If both providers are genuinely out of capacity and nothing has streamed
+ * yet, responds with a 429 + { queued: true, retryAfterMs } instead of an
+ * error, so the client can wait and retry automatically.
  */
 export async function streamAnswer(messages, res) {
   let wroteAny = false;
+  const onWrite = () => {
+    wroteAny = true;
+  };
 
-  try {
-    await streamGroq(messages, res, () => {
-      wroteAny = true;
-    });
-    res.end();
-  } catch (groqError) {
-    const isRateLimited = groqError?.status === 429;
-    const canFallback =
-      isRateLimited && !wroteAny && !!process.env.GEMINI_API_KEY;
+  const groqSlot = await reserveGroq();
 
-    if (!canFallback) {
-      console.error("Groq API error:", groqError);
-      if (!res.headersSent) {
-        res.status(
-          groqError instanceof Groq.APIError ? groqError.status ?? 500 : 500,
-        );
-      }
-      res.end(
-        `\n\n[Error: ${groqError instanceof Error ? groqError.message : "Something went wrong talking to the AI."}]`,
-      );
-      return;
-    }
-
+  if (groqSlot.ok) {
     try {
-      await streamGemini(messages, res);
+      await streamGroq(messages, res, onWrite);
       res.end();
-    } catch (geminiError) {
-      console.error("Gemini fallback error:", geminiError);
-      if (!res.headersSent) res.status(500);
-      res.end("\n\n[Error: Something went wrong talking to the AI.]");
+      return;
+    } catch (groqError) {
+      const isRateLimited = groqError?.status === 429;
+      if (!isRateLimited || wroteAny) {
+        console.error("Groq API error:", groqError);
+        sendFatalError(
+          res,
+          groqError instanceof Groq.APIError ? groqError.status ?? 500 : 500,
+          groqError instanceof Error ? groqError.message : "Something went wrong talking to the AI.",
+        );
+        return;
+      }
+      // Groq rate-limited us despite our reservation — fall through to Gemini.
     }
+  }
+
+  if (process.env.GEMINI_API_KEY) {
+    const geminiSlot = await reserveGemini();
+
+    if (geminiSlot.ok) {
+      try {
+        await streamGemini(messages, res, onWrite);
+        res.end();
+        return;
+      } catch (geminiError) {
+        if (wroteAny) {
+          console.error("Gemini fallback error:", geminiError);
+          sendFatalError(res, 500, "Something went wrong talking to the AI.");
+          return;
+        }
+        // Gemini also failed before writing anything — fall through to queued response.
+      }
+    }
+  }
+
+  // Both providers are out of capacity right now. Tell the client to wait
+  // and retry instead of showing an error.
+  const retryAfterMs = groqSlot.retryAfterMs ?? 5000;
+  if (!res.headersSent) {
+    res.setHeader("Content-Type", "application/json");
+    res.status(429).json({ queued: true, retryAfterMs });
+  } else {
+    sendFatalError(res, 500, "Something went wrong talking to the AI.");
   }
 }
