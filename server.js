@@ -43,8 +43,13 @@ app.post("/api/redeem", async (req, res) => {
 });
 
 app.post("/api/verify", async (req, res) => {
-  const ok = await isValidSession(req.body?.token);
-  res.status(ok ? 200 : 401).json({ ok });
+  try {
+    const ok = await isValidSession(req.body?.token);
+    res.status(ok ? 200 : 401).json({ ok });
+  } catch (err) {
+    console.error("verify error:", err);
+    res.status(503).json({ ok: false, error: "temporarily unavailable" });
+  }
 });
 
 app.post("/api/ask", async (req, res) => {

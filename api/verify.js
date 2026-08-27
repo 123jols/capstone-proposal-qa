@@ -7,6 +7,12 @@ export default async function handler(req, res) {
   }
 
   const { token } = req.body ?? {};
-  const ok = await isValidSession(token);
-  res.status(ok ? 200 : 401).json({ ok });
+
+  try {
+    const ok = await isValidSession(token);
+    res.status(ok ? 200 : 401).json({ ok });
+  } catch (err) {
+    console.error("verify error:", err);
+    res.status(503).json({ ok: false, error: "temporarily unavailable" });
+  }
 }

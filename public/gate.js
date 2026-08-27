@@ -14,9 +14,11 @@ const ACCESS_TOKEN_KEY = "capstone-access-token";
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
-      return res.ok;
+      if (res.ok) return "valid";
+      if (res.status === 401) return "invalid";
+      return "unknown"; // server/transient error — don't punish the user for this
     } catch {
-      return false;
+      return "unknown"; // network error
     }
   }
 
@@ -44,11 +46,13 @@ const ACCESS_TOKEN_KEY = "capstone-access-token";
   (async function tryStoredToken() {
     const stored = localStorage.getItem(ACCESS_TOKEN_KEY);
     if (!stored) return;
-    if (await verifyToken(stored)) {
+    const result = await verifyToken(stored);
+    if (result === "valid") {
       unlock();
-    } else {
+    } else if (result === "invalid") {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
+    // "unknown" (network/server hiccup): keep the token, leave the gate up, let them retry.
   })();
 
   form.addEventListener("submit", async (e) => {
