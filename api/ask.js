@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 import { SYSTEM_PROMPT } from "../proposal-context.js";
-import { codeMatches } from "./_lib/auth.js";
+import { isValidSession } from "./_lib/codes.js";
 
 const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
@@ -11,8 +11,10 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (!codeMatches(req.headers["x-access-code"])) {
-    res.status(401).json({ error: "Invalid or missing access code" });
+  if (!(await isValidSession(req.headers["x-access-code"]))) {
+    res
+      .status(401)
+      .json({ error: "Invalid or expired session — please re-enter your access code." });
     return;
   }
 

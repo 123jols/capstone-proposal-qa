@@ -207,7 +207,7 @@ async function answerInto(aiEl, question, priorHistory, attempt) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Access-Code": localStorage.getItem(ACCESS_CODE_KEY) || "",
+        "X-Access-Code": localStorage.getItem(ACCESS_TOKEN_KEY) || "",
       },
       body: JSON.stringify({ question, history: priorHistory }),
       signal: controller.signal,

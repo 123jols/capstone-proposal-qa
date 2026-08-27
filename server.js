@@ -4,7 +4,13 @@ import Groq from "groq-sdk";
 import path from "path";
 import { fileURLToPath } from "url";
 import { SYSTEM_PROMPT } from "./proposal-context.js";
-import { codeMatches } from "./api/_lib/auth.js";
+import { redeemCode, isValidSession } from "./api/_lib/codes.js";
+import {
+  getClientIp,
+  isLockedOut,
+  recordFailedAttempt,
+  clearAttempts,
+} from "./api/_lib/rateLimit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,14 +22,37 @@ app.use(express.static(path.join(__dirname, "public")));
 const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
 
-app.post("/api/verify", (req, res) => {
-  const ok = codeMatches(req.body?.code);
+app.post("/api/redeem", async (req, res) => {
+  const ip = getClientIp(req);
+
+  if (await isLockedOut(ip)) {
+    return res
+      .status(429)
+      .json({ ok: false, error: "Too many attempts. Try again in an hour." });
+  }
+
+  const { code } = req.body ?? {};
+  const token = await redeemCode(typeof code === "string" ? code.trim() : code);
+
+  if (!token) {
+    await recordFailedAttempt(ip);
+    return res.status(401).json({ ok: false });
+  }
+
+  await clearAttempts(ip);
+  res.status(200).json({ ok: true, token });
+});
+
+app.post("/api/verify", async (req, res) => {
+  const ok = await isValidSession(req.body?.token);
   res.status(ok ? 200 : 401).json({ ok });
 });
 
 app.post("/api/ask", async (req, res) => {
-  if (!codeMatches(req.headers["x-access-code"])) {
-    return res.status(401).json({ error: "Invalid or missing access code" });
+  if (!(await isValidSession(req.headers["x-access-code"]))) {
+    return res.status(401).json({
+      error: "Invalid or expired session — please re-enter your access code.",
+    });
   }
 
   const { question, history } = req.body ?? {};

@@ -1,12 +1,12 @@
-import { codeMatches } from "./_lib/auth.js";
+import { isValidSession } from "./_lib/codes.js";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "method not allowed" });
     return;
   }
 
-  const { code } = req.body ?? {};
-  const ok = codeMatches(code);
+  const { token } = req.body ?? {};
+  const ok = await isValidSession(token);
   res.status(ok ? 200 : 401).json({ ok });
 }

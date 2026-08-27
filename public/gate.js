@@ -1,4 +1,4 @@
-const ACCESS_CODE_KEY = "capstone-access-code";
+const ACCESS_TOKEN_KEY = "capstone-access-token";
 
 (function () {
   const overlay = document.getElementById("access-gate");
@@ -7,16 +7,30 @@ const ACCESS_CODE_KEY = "capstone-access-code";
   const errorEl = document.getElementById("access-gate-error");
   const submitBtn = document.getElementById("access-gate-submit");
 
-  async function verify(code) {
+  async function verifyToken(token) {
     try {
       const res = await fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ token }),
       });
       return res.ok;
     } catch {
       return false;
+    }
+  }
+
+  async function redeemCode(code) {
+    try {
+      const res = await fetch("/api/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json().catch(() => ({}));
+      return { status: res.status, ...data };
+    } catch {
+      return { status: 0, ok: false };
     }
   }
 
@@ -27,13 +41,13 @@ const ACCESS_CODE_KEY = "capstone-access-code";
     }
   }
 
-  (async function tryStoredCode() {
-    const stored = localStorage.getItem(ACCESS_CODE_KEY);
+  (async function tryStoredToken() {
+    const stored = localStorage.getItem(ACCESS_TOKEN_KEY);
     if (!stored) return;
-    if (await verify(stored)) {
+    if (await verifyToken(stored)) {
       unlock();
     } else {
-      localStorage.removeItem(ACCESS_CODE_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
   })();
 
@@ -45,14 +59,18 @@ const ACCESS_CODE_KEY = "capstone-access-code";
     submitBtn.disabled = true;
     errorEl.hidden = true;
 
-    const ok = await verify(code);
+    const result = await redeemCode(code);
 
     submitBtn.disabled = false;
 
-    if (ok) {
-      localStorage.setItem(ACCESS_CODE_KEY, code);
+    if (result.ok && result.token) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, result.token);
       unlock();
     } else {
+      errorEl.textContent =
+        result.status === 429
+          ? "Too many attempts — try again in an hour."
+          : "Incorrect or already-used code — try again.";
       errorEl.hidden = false;
       input.select();
       input.focus();

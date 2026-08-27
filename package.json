@@ -8,6 +8,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "@upstash/redis": "^1.38.3",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "groq-sdk": "^1.6.0"
