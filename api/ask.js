@@ -1,8 +1,7 @@
-import Groq from "groq-sdk";
 import { SYSTEM_PROMPT } from "../proposal-context.js";
 import { isValidSession } from "./_lib/codes.js";
+import { streamAnswer } from "./_lib/complete.js";
 
-const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
 
 export default async function handler(req, res) {
@@ -46,29 +45,5 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("X-Accel-Buffering", "no");
 
-  try {
-    const client = new Groq();
-    const stream = await client.chat.completions.create({
-      model: MODEL,
-      max_tokens: 1024,
-      messages,
-      stream: true,
-    });
-
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content;
-      if (text) res.write(text);
-    }
-
-    res.end();
-  } catch (error) {
-    console.error("Groq API error:", error);
-    if (!res.headersSent) {
-      const status = error instanceof Groq.APIError ? error.status ?? 500 : 500;
-      res.status(status);
-    }
-    res.end(
-      `\n\n[Error: ${error instanceof Error ? error.message : "Something went wrong talking to the AI."}]`,
-    );
-  }
+  await streamAnswer(messages, res);
 }

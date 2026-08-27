@@ -1,10 +1,10 @@
 import "dotenv/config";
 import express from "express";
-import Groq from "groq-sdk";
 import path from "path";
 import { fileURLToPath } from "url";
 import { SYSTEM_PROMPT } from "./proposal-context.js";
 import { redeemCode, isValidSession } from "./api/_lib/codes.js";
+import { streamAnswer } from "./api/_lib/complete.js";
 import {
   getClientIp,
   isLockedOut,
@@ -19,7 +19,6 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const MODEL = "openai/gpt-oss-120b";
 const MAX_HISTORY_MESSAGES = 20;
 
 app.post("/api/redeem", async (req, res) => {
@@ -82,31 +81,7 @@ app.post("/api/ask", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("X-Accel-Buffering", "no");
 
-  try {
-    const client = new Groq();
-    const stream = await client.chat.completions.create({
-      model: MODEL,
-      max_tokens: 1024,
-      messages,
-      stream: true,
-    });
-
-    for await (const chunk of stream) {
-      const text = chunk.choices[0]?.delta?.content;
-      if (text) res.write(text);
-    }
-
-    res.end();
-  } catch (error) {
-    console.error("Groq API error:", error);
-    if (!res.headersSent) {
-      const status = error instanceof Groq.APIError ? error.status ?? 500 : 500;
-      res.status(status);
-    }
-    res.end(
-      `\n\n[Error: ${error instanceof Error ? error.message : "Something went wrong talking to the AI."}]`,
-    );
-  }
+  await streamAnswer(messages, res);
 });
 
 const PORT = process.env.PORT || 3000;
